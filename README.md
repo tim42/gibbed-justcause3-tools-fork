@@ -41,7 +41,7 @@ Changes includes:
 # Binary Releases
 
 Official binary release are to be found
-[http://justcause3mods.com/mods/modified-gibbeds-tools/](here) but there's
+[here](http://justcause3mods.com/mods/modified-gibbeds-tools/) but there's
 nothing to stop you from building these tools from source.
 
 
