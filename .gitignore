@@ -18,8 +18,16 @@
 x64/
 x86/
 bld/
-[Bb]in/
+[Bb]in/*
 [Oo]bj/
+
+# But I still need the bin/project folder
+!bin/projects/
+!bin/projects/*
+
+
+NDesk*
+other/
 
 # Visual Studio 2015 cache/options directory
 .vs/

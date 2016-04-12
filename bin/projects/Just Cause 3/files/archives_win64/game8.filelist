@@ -1,0 +1,24 @@
+; 23/23 (100%)
+sound/fmod_banks/music_exploration.bank
+sound/fmod_banks/music_mission.bank
+sound/fmod_banks/music_mograph.bank
+sound/fmod_banks/music_settlement.bank
+sound/fmod_banks/music_stingers.bank
+sound/fmod_banks/vehicles_air.bank
+sound/fmod_banks/vehicles_sea.bank
+sound/fmod_banks/vehicles_train.bank
+sound/fmod_banks/weapons_easter_egg.bank
+sound/granmatre.stringlookup
+sound/granmatre.vocalsc
+sound/mil_female02.stringlookup
+sound/mil_female02.vocalsc
+sound/rosa.stringlookup
+sound/rosa.vocalsc
+videos/challenges/challenge_air_race.bikc
+videos/challenges/challenge_crash_bomb.bikc
+videos/challenges/challenge_destruction.bikc
+videos/challenges/challenge_scrapyard.bikc
+videos/challenges/challenge_sea_race.bikc
+videos/challenges/challenge_shooting_range.bikc
+videos/challenges/challenge_street_race.bikc
+videos/challenges/challenge_wingsuit.bikc
