@@ -391,12 +391,13 @@ namespace GenerateNameList
                     nodeQueue.Enqueue(subs);
                 foreach (var property in node.Properties)
                 {
-                    var hashes = property.Value.GetHashList();
-                    if (hashes != null)
-                    {
-                        foreach (uint hash in hashes)
-                            AddHash(hash);
-                    }
+                    // uncomment to also put object ID / vec events keys and values in the hash list
+                    //var hashes = property.Value.GetHashList();
+                    //if (hashes != null)
+                    //{
+                    //    foreach (uint hash in hashes)
+                    //        AddHash(hash);
+                    //}
 
                     if (property.Value.Tag == "string")
                         AddString(property.Value.Compose(new Gibbed.ProjectData.HashList<uint>()));
