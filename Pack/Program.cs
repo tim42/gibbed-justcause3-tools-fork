@@ -58,16 +58,6 @@ namespace Gibbed.JustCause3.Pack
                 return;
             }
 
-            //if (File.Exists(arcFile)) // TODO: add cli options for this
-            //{
-            //    Console.WriteLine("WARNING: {0} in {1} ALREADY EXISTS", Path.GetFileName(arcFile), base_path);
-            //    Console.Write("WOULD YOU LIKE TO OVERWRITE {0} ? [y/N]: ", Path.GetFileName(arcFile));
-            //    char c = char.ToLower((char)Console.Read());
-            //    if (c != 'y')
-            //        return;
-            //    System.Threading.Thread.Sleep(2000);
-            //}
-
             Console.WriteLine("Will generate {0} and {1}", Path.GetFileName(tabFile), Path.GetFileName(arcFile));
 
             var fileList = Directory.GetFiles(path, "*", SearchOption.AllDirectories);
@@ -151,8 +141,6 @@ namespace Gibbed.JustCause3.Pack
             // write the tab file
             var tabStream = File.Create(tabFile);
             tabData.Serialize(tabStream);
-
-            System.Threading.Thread.Sleep(3000);
         }
     }
 }
