@@ -70,10 +70,6 @@
       <Project>{242d0738-aa4c-4c9c-a218-891a8f55559c}</Project>
       <Name>Gibbed.Squish</Name>
     </ProjectReference>
-    <ProjectReference Include="..\NDesk.Options\NDesk.Options.csproj">
-      <Project>{c98a6cd6-9422-4b35-8b7a-f520d75534d1}</Project>
-      <Name>NDesk.Options</Name>
-    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

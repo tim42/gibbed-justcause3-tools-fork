@@ -5,8 +5,6 @@ VisualStudioVersion = 14.0.24720.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Gibbed.JustCause3.FileFormats", "Gibbed.JustCause3.FileFormats\Gibbed.JustCause3.FileFormats.csproj", "{159F8BBE-9207-423F-9A4B-85748BA09D84}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NDesk.Options", "NDesk.Options\NDesk.Options.csproj", "{C98A6CD6-9422-4B35-8B7A-F520D75534D1}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Gibbed.ProjectData", "Gibbed.ProjectData\Gibbed.ProjectData.csproj", "{F27A289E-3376-4653-89F3-D19C1ECABF33}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Gibbed.IO", "Gibbed.IO\Gibbed.IO.csproj", "{047857BA-DAA3-4CA7-AFB8-A1B082B28C6A}"
@@ -43,13 +41,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Gibbed.JustCause3.ConvertTe
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Gibbed.Squish", "Gibbed.Squish\Gibbed.Squish.csproj", "{242D0738-AA4C-4C9C-A218-891A8F55559C}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{F16BCE0B-2E90-4124-8C64-F21763D3D26C}"
-	ProjectSection(SolutionItems) = preProject
-		.nuget\NuGet.Config = .nuget\NuGet.Config
-		.nuget\NuGet.exe = .nuget\NuGet.exe
-		.nuget\NuGet.targets = .nuget\NuGet.targets
-	EndProjectSection
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GenerateFileName", "GenerateFileName\GenerateFileName.csproj", "{B5899393-73CA-47B2-B77D-826D465A07E9}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GenerateNameList", "GenerateNameList\GenerateNameList.csproj", "{48E7E7E7-613A-488F-B829-505C6B520288}"
@@ -68,6 +59,13 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Gibbed.JustCause3.ConvertSt
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Gibbed.JustCause3.RenderBlockModel", "Gibbed.JustCause3.RenderBlockModel\Gibbed.JustCause3.RenderBlockModel.csproj", "{E37FBAD0-E98D-402B-84B5-177EF66F3290}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{F16BCE0B-2E90-4124-8C64-F21763D3D26C}"
+	ProjectSection(SolutionItems) = preProject
+		.nuget\NuGet.Config = .nuget\NuGet.Config
+		.nuget\NuGet.exe = .nuget\NuGet.exe
+		.nuget\NuGet.targets = .nuget\NuGet.targets
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x86 = Debug|x86
@@ -78,10 +76,6 @@ Global
 		{159F8BBE-9207-423F-9A4B-85748BA09D84}.Debug|x86.Build.0 = Debug|x86
 		{159F8BBE-9207-423F-9A4B-85748BA09D84}.Release|x86.ActiveCfg = Release|x86
 		{159F8BBE-9207-423F-9A4B-85748BA09D84}.Release|x86.Build.0 = Release|x86
-		{C98A6CD6-9422-4B35-8B7A-F520D75534D1}.Debug|x86.ActiveCfg = Debug|x86
-		{C98A6CD6-9422-4B35-8B7A-F520D75534D1}.Debug|x86.Build.0 = Debug|x86
-		{C98A6CD6-9422-4B35-8B7A-F520D75534D1}.Release|x86.ActiveCfg = Release|x86
-		{C98A6CD6-9422-4B35-8B7A-F520D75534D1}.Release|x86.Build.0 = Release|x86
 		{F27A289E-3376-4653-89F3-D19C1ECABF33}.Debug|x86.ActiveCfg = Debug|x86
 		{F27A289E-3376-4653-89F3-D19C1ECABF33}.Debug|x86.Build.0 = Debug|x86
 		{F27A289E-3376-4653-89F3-D19C1ECABF33}.Release|x86.ActiveCfg = Release|x86
@@ -172,7 +166,6 @@ Global
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{159F8BBE-9207-423F-9A4B-85748BA09D84} = {A12DA55C-2B9D-4899-A6A1-C039AC86FE1C}
-		{C98A6CD6-9422-4B35-8B7A-F520D75534D1} = {03FF2DC3-7B36-4F90-AF28-3E0266A42BF5}
 		{F27A289E-3376-4653-89F3-D19C1ECABF33} = {03FF2DC3-7B36-4F90-AF28-3E0266A42BF5}
 		{047857BA-DAA3-4CA7-AFB8-A1B082B28C6A} = {03FF2DC3-7B36-4F90-AF28-3E0266A42BF5}
 		{6D721C39-CBE3-40B7-8D93-35E13DC2318D} = {DF538025-8695-438B-9FB4-DC7BEDE3583A}
