@@ -17,11 +17,10 @@ namespace GenerateNameList
 
         private HashSet<string> _StringList;
         private HashSet<string> _StringLookupList;
-        private HashSet<uint> _HashList;
-        private HashSet<uint> _ObjectIdHashList;
-        private HashSet<uint> _VecEventHashList;
+        private Dictionary<string, HashSet<uint>> _HashList;
 
         private List<string> _FileList;
+        private HashList<uint> _ProjectFileList;
 
         private Thread _SelfThread;
         private uint _ThreadIndex;
@@ -30,7 +29,8 @@ namespace GenerateNameList
 
         private Dictionary<uint, HashSet<uint>> _HashFileHash;
         private HashSet<string> _FileSet;
-        private HashList<uint> _ProjectFileList;
+        private string _FlushFile; // this is to avoid consuming too much memory
+        private uint _EntryCount;
 
         private List<string> _CurrentFile; // the path (including any AAF archive) of the file
         private uint _CurrentFileHash;
@@ -49,22 +49,20 @@ namespace GenerateNameList
         public uint AAFExtractCount;
         public int FileCount;
 
-        public Dictionary<uint, HashSet<uint>> HashFileHash
-        {
-            get { return this._HashFileHash; }
-        }
-        public HashSet<string> FileSet
-        {
-            get { return this._FileSet; }
-        }
+        // getters
+        public Dictionary<uint, HashSet<uint>> HashFileHash { get { return this._HashFileHash; } }
+        public HashSet<string> FileSet { get { return this._FileSet; } }
+        public HashSet<string> StringList { get { return this._StringList; } }
+        public HashSet<string> StringLookupList { get { return this._StringLookupList; } }
+        public Dictionary<string, HashSet<uint>> HashList { get { return this._HashList; } }
+
+        public string FlushFile { get { return this._FlushFile; } }
 
         public ThreadSearcher(uint index, uint count, HashList<uint> fileList)
         {
             this._StringList = new HashSet<string>();
             this._StringLookupList = new HashSet<string>();
-            this._HashList = new HashSet<uint>();
-            this._ObjectIdHashList = new HashSet<uint>();
-            this._VecEventHashList = new HashSet<uint>();
+            this._HashList = new Dictionary<string, HashSet<uint>>();
             this._FileList = new List<string>();
             this._CurrentFile = new List<string>();
             this._HashFileHash = new Dictionary<uint, HashSet<uint>>();
@@ -72,6 +70,8 @@ namespace GenerateNameList
             this._ProjectFileList = fileList;
             this._ThreadIndex = index;
             this._ThreadCount = count;
+
+            this._FlushFile = Path.GetTempFileName();
 
             // reset stats
             this.ADFReadCount = 0;
@@ -106,63 +106,6 @@ namespace GenerateNameList
         public void Wait()
         {
             this._SelfThread.Join();
-        }
-
-        public void MergeResults(Stream stringOutputStream, SortedSet<string> foundStrings,
-                                 Stream hashOutputStream, SortedSet<uint> foundHashes,
-                                 Stream stringLookupOutputStream,
-                                 Stream objectIdHashOutputStream, SortedSet<uint> foundObjectIdHashes,
-                                 Stream eventHashOutputStream, SortedSet<uint> foundEventHashes)
-        {
-            // string
-            foreach (var str in this._StringList)
-            {
-                if (!string.IsNullOrEmpty(str) && !foundStrings.Contains(str))
-                {
-                    foundStrings.Add(str);
-                    stringOutputStream.WriteString(str);
-                    stringOutputStream.WriteString(Environment.NewLine);
-                }
-            }
-
-            // string (from stringlookup files)
-            foreach (var str in this._StringLookupList)
-            {
-                if (!string.IsNullOrEmpty(str) && !foundStrings.Contains(str))
-                {
-                    foundStrings.Add(str);
-                    stringLookupOutputStream.WriteString(str);
-                    stringLookupOutputStream.WriteString(Environment.NewLine);
-                }
-            }
-
-            // hash
-            foreach (var hash in this._HashList)
-            {
-                if (hash != 0 && !foundHashes.Contains(hash))
-                {
-                    foundHashes.Add(hash);
-                    hashOutputStream.WriteValueU32(hash);
-                }
-            }
-            // object id hash
-            foreach (var hash in this._ObjectIdHashList)
-            {
-                if (hash != 0 && !foundObjectIdHashes.Contains(hash))
-                {
-                    foundObjectIdHashes.Add(hash);
-                    objectIdHashOutputStream.WriteValueU32(hash);
-                }
-            }
-            // event hash
-            foreach (var hash in this._VecEventHashList)
-            {
-                if (hash != 0 && !foundEventHashes.Contains(hash))
-                {
-                    foundEventHashes.Add(hash);
-                    eventHashOutputStream.WriteValueU32(hash);
-                }
-            }
         }
 
         // the thread entry point
@@ -215,11 +158,16 @@ namespace GenerateNameList
                 }
                 ++this._ArchiveIndex;
             }
+            this.flush();
             this.PrintEnd();
         }
 
         private void HandleStream(Stream file, string type)
         {
+            // flush if the limit is reached
+            if (this._EntryCount > 300000)
+                this.flush();
+
             //file.Position = 0;
             if (type == "ADF")
             {
@@ -308,109 +256,39 @@ namespace GenerateNameList
             }
         }
 
-        private void PrintProgress()
-        {
-            float singleArcProgress = (float)this._ArchiveIndex / (float)this._FileList.Count;
-            float progressInArc = (float)this._ArchiveEntryIndex / (float)this._ArchiveEntryCount;
-            float globalProgress = ((float)this._ArchiveIndex + progressInArc) * 100 / (float)this._FileList.Count;
-            if (this.FileCount >= this._OldFileCount + 100)
-            {
-                _PrintMutex.WaitOne();
-                Console.CursorTop = this._LineOffset;
-                Console.CursorLeft = 0;
-                Console.WriteLine("[th{0}] [{3,4:0.#}%] -- {1}:\t[{4,4:0.#}%] [{2} files]\t<{5} AAF><{6} ADF><{7} RTPC>",
-                    this._ThreadIndex + 1, Path.GetFileName(this._FileList[this._ArchiveIndex]),
-                    this.FileCount,
-                    globalProgress, progressInArc * 100,
-                    this.AAFExtractCount, this.ADFReadCount, this.RTPCReadCount);
-                this._OldFileCount = this.FileCount;
-                _PrintMutex.ReleaseMutex();
-            }
-        }
-        private void PrintEnd()
-        {
-            _PrintMutex.WaitOne();
-            Console.CursorTop = this._LineOffset;
-            Console.CursorLeft = 0;
-            Console.WriteLine("[---] [ 100%] -- FINISHED:\t[ ---%] [{0} files]\t<{1} AAF><{2} ADF><{3} RTPC>",
-                this.FileCount,
-                this.AAFExtractCount, this.ADFReadCount, this.RTPCReadCount);
-            this._OldFileCount = this.FileCount;
-            _PrintMutex.ReleaseMutex();
-        }
-
-        private string GetType(Stream s)
-        {
-            var p = s.Position;
-            uint rd = s.ReadValueU32();
-            s.Position = p;
-
-            switch (rd)
-            {
-                case AdfFile.Signature:
-                    return "ADF";
-                case PropertyContainerFile.Signature:
-                    return "RTPC";
-                case CoolArchiveFile.Signature:
-                    return "AAF";
-            }
-            switch (rd.Swap())
-            {
-                case AdfFile.Signature:
-                    return "ADF";
-                case PropertyContainerFile.Signature:
-                    return "RTPC";
-                case CoolArchiveFile.Signature:
-                    return "AAF";
-            }
-            return null;
-        }
-
         private void AddString(string s)
         {
             if (!this._StringList.Contains(s))
                 this._StringList.Add(s);
         }
 
-        private void AddHash(uint h, HashSet<uint> set)
+        private void AddHash(uint h, string name)
         {
-            if (h != 0 && !set.Contains(h))
-                set.Add(h);
+            if (h != 0 && !this._HashList.ContainsKey(name))
+                this._HashList[name] = new HashSet<uint>() { h };
+            else if (h != 0 && !this._HashList[name].Contains(h))
+                this._HashList[name].Add(h);
+
             if (h != 0)
             {
                 // create the entry for the file and the hash
                 if (this._HashFileHash.ContainsKey(h))
                 {
                     if (this._HashFileHash[h].Contains(this._CurrentFileHash) == false)
+                    {
                         this._HashFileHash[h].Add(this._CurrentFileHash);
-
+                        ++this._EntryCount;
+                    }
                 }
                 else
                 {
                     this._HashFileHash.Add(h, new HashSet<uint>() { this._CurrentFileHash });
+                    ++this._EntryCount;
                 }
                 // insert the file
                 if (!this._FileSet.Contains(this._CurrentFileString))
                     this._FileSet.Add(this._CurrentFileString);
             }
-        }
-
-        private void UpdateCurrentFile()
-        {
-            StringBuilder sb = new StringBuilder();
-
-            bool first = true;
-            foreach (string s in this._CurrentFile)
-            {
-                if (s == null)
-                    break;
-                if (!first)
-                    sb.Append(':');
-                sb.Append(s);
-                first = false;
-            }
-            this._CurrentFileString = sb.ToString();
-            this._CurrentFileHash = this._CurrentFileString.HashJenkins();
         }
 
         private void ADFExtractStrings(AdfFile adf)
@@ -496,7 +374,7 @@ namespace GenerateNameList
             {
                 var node = nodeQueue.Dequeue();
 
-                AddHash(node.NameHash, this._HashList);
+                AddHash(node.NameHash, "identifier");
 
                 foreach (var subs in node.Children)
                     nodeQueue.Enqueue(subs);
@@ -508,13 +386,19 @@ namespace GenerateNameList
                     {
                         case "objectid":
                             if (hashes != null && hashes.Length > 0)
-                                AddHash(hashes[0], this._ObjectIdHashList);
+                            {
+                                AddHash(hashes[0], "object-id");
+                                AddHash(hashes[1], "object-id-value");
+                            }
                             break;
                         case "vec_events":
                             if (hashes != null && hashes.Length > 0)
                             {
                                 for (int i = 0; i < hashes.Length; i += 2)
-                                    AddHash(hashes[i], this._VecEventHashList);
+                                {
+                                    AddHash(hashes[i + 0], "events");
+                                    AddHash(hashes[i + 1], "event-values");
+                                }
                             }
                             break;
                         case "string":
@@ -522,9 +406,32 @@ namespace GenerateNameList
                             break;
                     }
 
-                    AddHash(property.Key, this._HashList);
+                    AddHash(property.Key, "identifier");
                 }
             }
+        }
+
+        private void flush()
+        {
+            this.PrintFlush();
+
+            this._EntryCount = 0;
+            using (var output = File.OpenWrite(this._FlushFile))
+            {
+                output.Position = output.Length;
+
+                output.WriteValueU32((uint)this._HashFileHash.Count);
+                foreach (var kv in this._HashFileHash)
+                {
+                    output.WriteValueU32(kv.Key);
+                    output.WriteValueU32((uint)kv.Value.Count);
+
+                    foreach (var h in kv.Value)
+                        output.WriteValueU32(h);
+                }
+            }
+            this._HashFileHash.Clear();
+            GC.Collect();
         }
 
         private static Stream CreateCoolArchiveStream(Stream input)
@@ -542,6 +449,98 @@ namespace GenerateNameList
             archive.Deserialize(input);
 
             return new CoolStream(archive, input);
+        }
+
+        private void UpdateCurrentFile()
+        {
+            StringBuilder sb = new StringBuilder();
+
+            bool first = true;
+            foreach (string s in this._CurrentFile)
+            {
+                if (s == null)
+                    break;
+                if (!first)
+                    sb.Append(':');
+                sb.Append(s);
+                first = false;
+            }
+            this._CurrentFileString = sb.ToString();
+            this._CurrentFileHash = this._CurrentFileString.HashJenkins();
+        }
+
+        private string GetType(Stream s)
+        {
+            var p = s.Position;
+            uint rd = s.ReadValueU32();
+            s.Position = p;
+
+            switch (rd)
+            {
+                case AdfFile.Signature:
+                    return "ADF";
+                case PropertyContainerFile.Signature:
+                    return "RTPC";
+                case CoolArchiveFile.Signature:
+                    return "AAF";
+            }
+            switch (rd.Swap())
+            {
+                case AdfFile.Signature:
+                    return "ADF";
+                case PropertyContainerFile.Signature:
+                    return "RTPC";
+                case CoolArchiveFile.Signature:
+                    return "AAF";
+            }
+            return null;
+        }
+
+        private void PrintProgress()
+        {
+            float singleArcProgress = (float)this._ArchiveIndex / (float)this._FileList.Count;
+            float progressInArc = (float)this._ArchiveEntryIndex / (float)this._ArchiveEntryCount;
+            float globalProgress = ((float)this._ArchiveIndex + progressInArc) * 100 / (float)this._FileList.Count;
+            if (this.FileCount >= this._OldFileCount + 100)
+            {
+                _PrintMutex.WaitOne();
+                Console.CursorTop = this._LineOffset;
+                Console.CursorLeft = 0;
+                Console.WriteLine("[th{0}] [{3,4:0.#}%] -- {1}:\t[{4,4:0.#}%] [{2} files]\t<{5} AAF><{6} ADF><{7} RTPC>",
+                    this._ThreadIndex + 1, Path.GetFileName(this._FileList[this._ArchiveIndex]),
+                    this.FileCount,
+                    globalProgress, progressInArc * 100,
+                    this.AAFExtractCount, this.ADFReadCount, this.RTPCReadCount);
+                this._OldFileCount = this.FileCount;
+                _PrintMutex.ReleaseMutex();
+            }
+        }
+        private void PrintEnd()
+        {
+            _PrintMutex.WaitOne();
+            Console.CursorTop = this._LineOffset;
+            Console.CursorLeft = 0;
+            Console.WriteLine("[---] [ 100%] -- FINISHED:\t[ ---%] [{0} files]\t<{1} AAF><{2} ADF><{3} RTPC>",
+                this.FileCount,
+                this.AAFExtractCount, this.ADFReadCount, this.RTPCReadCount);
+            this._OldFileCount = this.FileCount;
+            _PrintMutex.ReleaseMutex();
+        }
+        private void PrintFlush()
+        {
+            float singleArcProgress = (float)this._ArchiveIndex / (float)this._FileList.Count;
+            float progressInArc = (float)this._ArchiveEntryIndex / (float)this._ArchiveEntryCount;
+            float globalProgress = ((float)this._ArchiveIndex + progressInArc) * 100 / (float)this._FileList.Count;
+            _PrintMutex.WaitOne();
+            Console.CursorTop = this._LineOffset;
+            Console.CursorLeft = 0;
+            Console.WriteLine("[th{0}] [{1,4:0.#}%] -- FLUSHING:\t[ ---%] [{2} files]\t<{3} AAF><{4} ADF><{5} RTPC>",
+                this._ThreadIndex + 1,
+                globalProgress,
+                this.FileCount,
+                this.AAFExtractCount, this.ADFReadCount, this.RTPCReadCount);
+            this._OldFileCount = this.FileCount;
+            _PrintMutex.ReleaseMutex();
         }
     }
 }

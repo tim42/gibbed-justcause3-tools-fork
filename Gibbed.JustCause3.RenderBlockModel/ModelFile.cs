@@ -65,7 +65,8 @@ namespace Gibbed.JustCause3.RenderBlockModel
             var versionMinor = input.ReadValueS32(endian);
             var versionRevision = input.ReadValueS32(endian);
 
-            if (versionMajor != 1 || versionMinor != 13)
+            Console.WriteLine("RBM version {0}.{1}.{2}", versionMajor, versionMinor, versionRevision); // DEBUG
+            if (versionMajor != 1 || versionMinor != 16)
             {
                 throw new FormatException("unsupported RBMDL version");
             }
@@ -78,13 +79,38 @@ namespace Gibbed.JustCause3.RenderBlockModel
             this.MaxX = input.ReadValueF32(endian);
             this.MaxY = input.ReadValueF32(endian);
             this.MaxZ = input.ReadValueF32(endian);
+            Console.WriteLine("AABB: [{0:F1}; {1:F1}; {2:F1}][{3:F1}; {4:F1}; {5:F1}]",
+                                this.MinX, this.MinY, this.MinZ, this.MaxX, this.MaxY, this.MaxZ);
 
+            input.ReadValueS32(endian); // ? lods ?
             var count = input.ReadValueS32(endian);
+            Console.WriteLine("{0} blocks [offset 0x{1:X8}]", count, input.Position);
+
             this.Blocks.Clear();
             this.Blocks.Capacity = count;
             for (int i = 0; i < count; i++)
             {
+                //uint unknown = input.ReadValueU32(endian);
                 uint typeHash = input.ReadValueU32(endian);
+                Console.WriteLine("block type: {0:X8}", typeHash);
+
+                if (typeHash == 0x2CEC5AD5)
+                {
+                    uint tCount = input.ReadValueU32(endian);
+                    Console.WriteLine("tcount: {0}", tCount);
+                    for (int t = 0; t < tCount; ++t)
+                    {
+                        Console.WriteLine("1: {0}", input.ReadValueF32(endian));
+                        Console.WriteLine("2: {0}", input.ReadValueF32(endian));
+                        Console.WriteLine("3: {0}", input.ReadValueU32(endian));
+                        //Console.WriteLine("4: {0}", input.ReadValueU32(endian));
+                        //Console.WriteLine("5: {0}", input.ReadValueU32(endian));
+                        //Console.WriteLine("5: {0}", input.ReadValueU32(endian));
+                        Console.WriteLine(" -- ");
+                    }
+                    continue;
+                }
+                Console.WriteLine("block {0} [offset 0x{1:X8}]", i, input.Position);
 
                 var block = BlockTypeFactory.Create(typeHash);
                 if (block == null)
@@ -94,7 +120,6 @@ namespace Gibbed.JustCause3.RenderBlockModel
                     {
                         throw new NotSupportedException("unhandled block type " + typeName + " (0x" + typeHash.ToString("X8") + ")");
                     }
-
                     throw new NotSupportedException("unknown block type 0x" + typeHash.ToString("X8"));
                 }
 

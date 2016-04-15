@@ -27,6 +27,9 @@ namespace QueryHashList
         private static List<KeyValuePair<string, HashSet<uint>>> _HashFiles =
                         new List<KeyValuePair<string, HashSet<uint>>>();
 
+        private static Dictionary<uint, List<uint>> _HashFileDict = new Dictionary<uint, List<uint>>();
+        private static Dictionary<uint, string> _FileHashDict = new Dictionary<uint, string>();
+
         static void Main(string[] args)
         {
             Console.BufferWidth = 250;
@@ -41,8 +44,6 @@ namespace QueryHashList
 
             // load the hash->file dictionary
             string hashFilePath = Path.Combine(listsPath, "generated.hashfiledict");
-            var hashFileDict = new Dictionary<uint, List<uint>>();
-            var fileHashDict = new Dictionary<uint, string>();
 
             if (!File.Exists(hashFilePath))
                 Console.WriteLine("WARNING: Cross results are disabled. Please run GenerateNameList to fix that.");
@@ -63,7 +64,7 @@ namespace QueryHashList
                             list.Add(input.ReadValueU32());
                         if (list.Count > max)
                             max = list.Count;
-                        hashFileDict.Add(hash, list);
+                        _HashFileDict.Add(hash, list);
                     }
 
                     uint scount = input.ReadValueU32();
@@ -71,8 +72,8 @@ namespace QueryHashList
                     {
                         string s = input.ReadStringU32(Endian.Little);
                         uint h = s.HashJenkins();
-                        if (!fileHashDict.ContainsKey(h))
-                            fileHashDict.Add(h, s);
+                        if (!_FileHashDict.ContainsKey(h))
+                            _FileHashDict.Add(h, s);
                         else
                             ++conflicts;
                     }
@@ -110,6 +111,14 @@ namespace QueryHashList
                     break;
 
                 uint hash = 0;
+                bool printFileList = false;
+                if (line[0] == ':')
+                {
+                    line = line.Substring(1);
+                    printFileList = true;
+                }
+
+                // get the hash from the line
                 bool fail = false;
                 if ((line[0] == '-' || line[0] == '+') && line.Length > 1)
                 {
@@ -133,15 +142,16 @@ namespace QueryHashList
                     continue;
                 }
 
-                bool res = SearchHash(hash, false, hashFileDict, fileHashDict);
-                res |= SearchHash(hash.Swap(), true, hashFileDict, fileHashDict);
+                // print the results
+                bool res = SearchHash(hash, false, printFileList);
+                res |= SearchHash(hash.Swap(), true, printFileList);
 
                 if (!res)
                     Console.WriteLine("  hash not found");
             }
         }
 
-        static bool SearchHash(uint hash, bool reverse, Dictionary<uint, List<uint>> hashFileDict, Dictionary<uint, string> fileHashDict)
+        static bool SearchHash(uint hash, bool reverse, bool printFileList)
         {
             bool found = false;
 
@@ -168,11 +178,16 @@ namespace QueryHashList
             }
 
             // lookup the file list for this hash:
-            if (hashFileDict.ContainsKey(hash))
+            if (_HashFileDict.ContainsKey(hash))
             {
-                var l = hashFileDict[hash];
-                foreach (var h in l)
-                    Console.WriteLine("  used in {0}", fileHashDict[h]);
+                var l = _HashFileDict[hash];
+                if (printFileList || l.Count <= 3)
+                {
+                    foreach (var h in l)
+                        Console.WriteLine("  used in {0}", _FileHashDict[h]);
+                }
+                else if (l.Count > 0)
+                    Console.WriteLine("  appears in {0} files. (prefix the hash with : to print the list)", l.Count, hash);
             }
             return found;
         }

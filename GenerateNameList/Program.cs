@@ -33,7 +33,7 @@ namespace GenerateNameList
             var project = manager.ActiveProject;
             var fileHashList = project.LoadFileLists(null);
 
-            Assert(project != null, "Not active project selected");
+            Assert(project != null, "No active project selected");
 
             var installPath = project.InstallPath;
             var listsPath = project.ListsPath;
@@ -42,18 +42,15 @@ namespace GenerateNameList
             Assert(listsPath != null, "Could not detect lists path.");
 
             string outputPath = Path.Combine(listsPath, "00_generated.namelist");
-            string hashOutputPath = Path.Combine(listsPath, "generated.hashlist");
-            string objectIdHashOutputPath = Path.Combine(listsPath, "object-id.hashlist");
-            string eventHashOutputPath = Path.Combine(listsPath, "event.hashlist");
+            string identifierHashPath = Path.Combine(listsPath, "identifier.hashlist");
 
             bool overwrite = false;
-            bool alreadyExists = File.Exists(outputPath) && File.Exists(hashOutputPath);
+            bool alreadyExists = File.Exists(outputPath) && File.Exists(identifierHashPath);
 
             // overwrite or create the generated.namelist
             if (overwrite || !alreadyExists)
             {
                 Console.WriteLine("Will regenerate the list of all known names");
-                Console.WriteLine("It will not extract anything nor write on the HDD.");
                 Console.WriteLine();
 
                 // the search part
@@ -87,13 +84,12 @@ namespace GenerateNameList
                 string hashFilePath = Path.Combine(listsPath, "generated.hashfiledict");
 
                 var foundStrings = new SortedSet<string>(); // where I will put all those strings !
-                var foundHashes = new SortedSet<uint>(); // where I will put all those hash !
-                var foundObjectIdHashes = new SortedSet<uint>(); // where I will put all those hash !
-                var foundEventHashes = new SortedSet<uint>(); // where I will put all those hash !
+                var foundHashes = new Dictionary<string, HashSet<uint>>(); // where I will put all those hash !
                 var hashFileHashDict = new Dictionary<uint, HashSet<uint>>();
                 var fileSet = new HashSet<string>();
 
                 var searchThreads = new List<ThreadSearcher>();
+                int consoleEndLine = Console.CursorTop + (int)processorCount;
                 for (uint i = 0; i < processorCount; ++i)
                 {
                     searchThreads.Add(new ThreadSearcher(i, processorCount, fileHashList));
@@ -103,34 +99,91 @@ namespace GenerateNameList
                 foreach (var searcher in searchThreads)
                     searcher.Wait();
                 // merge results
+                Console.CursorTop = consoleEndLine + 1;
                 Console.WriteLine("Merging results...");
                 using (var stringOutputStream = File.Create(outputTmpPath))
                 using (var stringLookupOutputStream = File.Create(outputLookupPath))
-                using (var hashOutputStream = File.Create(hashOutputPath))
-                using (var objectIdHashOutputStream = File.Create(objectIdHashOutputPath))
-                using (var eventHashOutputStream = File.Create(eventHashOutputPath))
                 {
                     foreach (var searcher in searchThreads)
                     {
-                        searcher.MergeResults(stringOutputStream, foundStrings,
-                                              hashOutputStream, foundHashes,
-                                              stringLookupOutputStream,
-                                              objectIdHashOutputStream, foundObjectIdHashes,
-                                              eventHashOutputStream, foundEventHashes);
+                        // string
+                        foreach (var str in searcher.StringList)
+                        {
+                            if (!string.IsNullOrEmpty(str) && !foundStrings.Contains(str))
+                            {
+                                foundStrings.Add(str);
+                                stringOutputStream.WriteString(str);
+                                stringOutputStream.WriteString(Environment.NewLine);
+                            }
+                        }
+                        searcher.StringList.Clear();
+
+                        // string (from stringlookup files)
+                        foreach (var str in searcher.StringLookupList)
+                        {
+                            if (!string.IsNullOrEmpty(str) && !foundStrings.Contains(str))
+                            {
+                                foundStrings.Add(str);
+                                stringLookupOutputStream.WriteString(str);
+                                stringLookupOutputStream.WriteString(Environment.NewLine);
+                            }
+                        }
+                        searcher.StringLookupList.Clear();
+
+                        // hash
+                        foreach (var set in searcher.HashList)
+                        {
+                            if (!foundHashes.ContainsKey(set.Key))
+                                foundHashes.Add(set.Key, set.Value);
+                            else
+                                foundHashes[set.Key].UnionWith(set.Value);
+                        }
+                        searcher.HashList.Clear();
 
                         // merge hashFileDict
-                        foreach (var kv in searcher.HashFileHash)
+                        using (var flushfile = File.OpenRead(searcher.FlushFile))
                         {
-                            if (!hashFileHashDict.ContainsKey(kv.Key))
-                                hashFileHashDict.Add(kv.Key, kv.Value);
-                            else
-                                hashFileHashDict[kv.Key].UnionWith(kv.Value);
+                            while (flushfile.Position < flushfile.Length)
+                            {
+                                uint count = flushfile.ReadValueU32();
+                                for (uint i = 0; i < count; ++i)
+                                {
+                                    uint hash = flushfile.ReadValueU32();
+                                    uint hashCount = flushfile.ReadValueU32();
+                                    var list = new HashSet<uint>();
+
+                                    for (uint j = 0; j < hashCount; ++j)
+                                        list.Add(flushfile.ReadValueU32());
+                                    if (!hashFileHashDict.ContainsKey(hash))
+                                        hashFileHashDict.Add(hash, list);
+                                    else
+                                        hashFileHashDict[hash].UnionWith(list);
+                                }
+                            }
                         }
+                        // free disk space
+                        File.Delete(searcher.FlushFile);
+
                         fileSet.UnionWith(searcher.FileSet);
+                        searcher.FileSet.Clear();
+                    }
+                }
+
+                Assert(foundHashes.ContainsKey("identifier"), "Can't find an 'identifier' category in the generated hash list");
+                
+                // write the contents of foundHashes in their respective hashlist files
+                Console.WriteLine("Writing hash files...");
+                foreach (var hashFile in foundHashes)
+                {
+                    using (var fileOutput = File.Create(Path.Combine(listsPath, hashFile.Key + ".hashlist")))
+                    {
+                        foreach (uint h in hashFile.Value)
+                            fileOutput.WriteValueU32(h);
                     }
                 }
 
                 // write the contents of hashFileDict to some file
+                Console.WriteLine("Writing cross result file...");
                 using (var hashFileOutput = File.Create(hashFilePath))
                 {
                     hashFileOutput.WriteValueU32((uint)hashFileHashDict.Count);
@@ -148,8 +201,7 @@ namespace GenerateNameList
                         hashFileOutput.WriteStringU32(s, Endian.Little);
                 }
 
-                Console.WriteLine("Found {0} unique hash and {1} unique strings", foundHashes.Count, foundStrings.Count);
-                Console.WriteLine("Found {0} unique object-id keys", foundObjectIdHashes.Count);
+                Console.WriteLine("Found {0} unique identifier hash and {1} unique strings", foundHashes["identifier"].Count, foundStrings.Count);
             }
             else
             {
@@ -162,7 +214,7 @@ namespace GenerateNameList
             Console.WriteLine("Loading name hash list...");
             var hashList = new SortedSet<uint>(); // where I will put all those hash !
 
-            using (var hashFile = File.OpenRead(hashOutputPath))
+            using (var hashFile = File.OpenRead(identifierHashPath))
             {
                 long length = hashFile.Length;
                 for (long i = 0; i < length; i += 4)
