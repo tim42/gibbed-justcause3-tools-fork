@@ -23,6 +23,7 @@ namespace QueryHashList
         }
 
         private static HashList<uint> _Names;
+        private static HashList<uint> _Files;
 
         private static List<KeyValuePair<string, HashSet<uint>>> _HashFiles =
                         new List<KeyValuePair<string, HashSet<uint>>>();
@@ -101,6 +102,7 @@ namespace QueryHashList
 
             // ask the project to load the namelist
             _Names = manager.LoadPropertyNames();
+            _Files = manager.LoadFileLists(null);
 
             // everything is loaded, run the interactive part
             while (true)
@@ -168,6 +170,15 @@ namespace QueryHashList
                 }
             }
 
+            // ask _Files for a name
+            if (_Files.Contains(hash))
+            {
+                if (reverse == false)
+                    Console.WriteLine("  found file that matches: {0}", _Files[hash]);
+                else
+                    Console.WriteLine("  found file that matches for reverse hash: {0}", _Files[hash]);
+            }
+
             // ask _Name for a name
             if (_Names.Contains(hash))
             {
@@ -184,10 +195,20 @@ namespace QueryHashList
                 if (printFileList || l.Count <= 3)
                 {
                     foreach (var h in l)
-                        Console.WriteLine("  used in {0}", _FileHashDict[h]);
+                    {
+                        if (reverse == false)
+                            Console.WriteLine("  used in {0}", _FileHashDict[h]);
+                        else
+                            Console.WriteLine("  reverse used in {0}", _FileHashDict[h]);
+                    }
                 }
                 else if (l.Count > 0)
-                    Console.WriteLine("  appears in {0} files. (prefix the hash with : to print the list)", l.Count, hash);
+                {
+                    if (reverse == false)
+                        Console.WriteLine("  appears in {0} files. (prefix the hash with : to print the list)", l.Count, hash);
+                    else
+                        Console.WriteLine("  reverse appears in {0} files. (prefix the hash with : to print the list)", l.Count, hash);
+                }
             }
             return found;
         }
