@@ -31,16 +31,20 @@ namespace GenerateNameList
 
             var manager = Manager.Load(); // load the current project
             var project = manager.ActiveProject;
+            var fileHashList = project.LoadFileLists(null);
 
             Assert(project != null, "Not active project selected");
 
             var installPath = project.InstallPath;
             var listsPath = project.ListsPath;
-            string outputPath = Path.Combine(listsPath, "00_generated.namelist");
-            string hashOutputPath = Path.Combine(listsPath, "generated.hashlist");
 
             Assert(installPath != null, "Could not detect install path.");
             Assert(listsPath != null, "Could not detect lists path.");
+
+            string outputPath = Path.Combine(listsPath, "00_generated.namelist");
+            string hashOutputPath = Path.Combine(listsPath, "generated.hashlist");
+            string objectIdHashOutputPath = Path.Combine(listsPath, "object-id.hashlist");
+            string eventHashOutputPath = Path.Combine(listsPath, "event.hashlist");
 
             bool overwrite = false;
             bool alreadyExists = File.Exists(outputPath) && File.Exists(hashOutputPath);
@@ -74,33 +78,78 @@ namespace GenerateNameList
                 Console.WriteLine("Found {0} game archives", inputPaths.Count);
 
                 uint processorCount = (uint)Environment.ProcessorCount;
+                if (processorCount > 6)
+                    processorCount = 6;
                 Console.WriteLine("Using {0} search threads", processorCount);
 
-                string outputLookupPath = Path.Combine(listsPath, "90_generated.stringlookup.namelist");
-                string outputTmpPath = Path.Combine(listsPath, "00_generated.tmp.namelist");
+                string outputLookupPath = Path.Combine(listsPath, "90_generated.stringlookup.compnamelist");
+                string outputTmpPath = Path.Combine(listsPath, "00_generated.tmp.compnamelist");
+                string hashFilePath = Path.Combine(listsPath, "generated.hashfiledict");
 
                 var foundStrings = new SortedSet<string>(); // where I will put all those strings !
                 var foundHashes = new SortedSet<uint>(); // where I will put all those hash !
+                var foundObjectIdHashes = new SortedSet<uint>(); // where I will put all those hash !
+                var foundEventHashes = new SortedSet<uint>(); // where I will put all those hash !
+                var hashFileHashDict = new Dictionary<uint, HashSet<uint>>();
+                var fileSet = new HashSet<string>();
 
                 var searchThreads = new List<ThreadSearcher>();
                 for (uint i = 0; i < processorCount; ++i)
                 {
-                    searchThreads.Add(new ThreadSearcher(i, processorCount));
+                    searchThreads.Add(new ThreadSearcher(i, processorCount, fileHashList));
                     searchThreads[(int)i].Search(inputPaths);
                 }
                 // wait for completion
                 foreach (var searcher in searchThreads)
                     searcher.Wait();
                 // merge results
+                Console.WriteLine("Merging results...");
                 using (var stringOutputStream = File.Create(outputTmpPath))
                 using (var stringLookupOutputStream = File.Create(outputLookupPath))
                 using (var hashOutputStream = File.Create(hashOutputPath))
+                using (var objectIdHashOutputStream = File.Create(objectIdHashOutputPath))
+                using (var eventHashOutputStream = File.Create(eventHashOutputPath))
                 {
                     foreach (var searcher in searchThreads)
-                        searcher.MergeResults(stringOutputStream, foundStrings, hashOutputStream, foundHashes, stringLookupOutputStream);
+                    {
+                        searcher.MergeResults(stringOutputStream, foundStrings,
+                                              hashOutputStream, foundHashes,
+                                              stringLookupOutputStream,
+                                              objectIdHashOutputStream, foundObjectIdHashes,
+                                              eventHashOutputStream, foundEventHashes);
+
+                        // merge hashFileDict
+                        foreach (var kv in searcher.HashFileHash)
+                        {
+                            if (!hashFileHashDict.ContainsKey(kv.Key))
+                                hashFileHashDict.Add(kv.Key, kv.Value);
+                            else
+                                hashFileHashDict[kv.Key].UnionWith(kv.Value);
+                        }
+                        fileSet.UnionWith(searcher.FileSet);
+                    }
+                }
+
+                // write the contents of hashFileDict to some file
+                using (var hashFileOutput = File.Create(hashFilePath))
+                {
+                    hashFileOutput.WriteValueU32((uint)hashFileHashDict.Count);
+                    foreach (var kv in hashFileHashDict)
+                    {
+                        hashFileOutput.WriteValueU32(kv.Key);
+                        hashFileOutput.WriteValueU32((uint)kv.Value.Count);
+
+                        foreach (var h in kv.Value)
+                            hashFileOutput.WriteValueU32(h);
+                    }
+
+                    hashFileOutput.WriteValueU32((uint)fileSet.Count);
+                    foreach (var s in fileSet)
+                        hashFileOutput.WriteStringU32(s, Endian.Little);
                 }
 
                 Console.WriteLine("Found {0} unique hash and {1} unique strings", foundHashes.Count, foundStrings.Count);
+                Console.WriteLine("Found {0} unique object-id keys", foundObjectIdHashes.Count);
             }
             else
             {

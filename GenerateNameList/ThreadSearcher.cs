@@ -7,6 +7,7 @@ using System.Threading;
 using Gibbed.IO;
 using Gibbed.JustCause3.FileFormats;
 using Gibbed.JustCause3.PropertyFormats;
+using Gibbed.ProjectData;
 
 namespace GenerateNameList
 {
@@ -17,11 +18,23 @@ namespace GenerateNameList
         private HashSet<string> _StringList;
         private HashSet<string> _StringLookupList;
         private HashSet<uint> _HashList;
+        private HashSet<uint> _ObjectIdHashList;
+        private HashSet<uint> _VecEventHashList;
+
         private List<string> _FileList;
+
         private Thread _SelfThread;
         private uint _ThreadIndex;
         private uint _ThreadCount;
         private int _LineOffset;
+
+        private Dictionary<uint, HashSet<uint>> _HashFileHash;
+        private HashSet<string> _FileSet;
+        private HashList<uint> _ProjectFileList;
+
+        private List<string> _CurrentFile; // the path (including any AAF archive) of the file
+        private uint _CurrentFileHash;
+        private string _CurrentFileString;
 
         private int _ArchiveIndex;
         private int _ArchiveEntryIndex;
@@ -36,12 +49,27 @@ namespace GenerateNameList
         public uint AAFExtractCount;
         public int FileCount;
 
-        public ThreadSearcher(uint index, uint count)
+        public Dictionary<uint, HashSet<uint>> HashFileHash
+        {
+            get { return this._HashFileHash; }
+        }
+        public HashSet<string> FileSet
+        {
+            get { return this._FileSet; }
+        }
+
+        public ThreadSearcher(uint index, uint count, HashList<uint> fileList)
         {
             this._StringList = new HashSet<string>();
             this._StringLookupList = new HashSet<string>();
             this._HashList = new HashSet<uint>();
+            this._ObjectIdHashList = new HashSet<uint>();
+            this._VecEventHashList = new HashSet<uint>();
             this._FileList = new List<string>();
+            this._CurrentFile = new List<string>();
+            this._HashFileHash = new Dictionary<uint, HashSet<uint>>();
+            this._FileSet = new HashSet<string>();
+            this._ProjectFileList = fileList;
             this._ThreadIndex = index;
             this._ThreadCount = count;
 
@@ -66,6 +94,8 @@ namespace GenerateNameList
             this._StringList.Clear();
             this._LineOffset = Console.CursorTop;
             this._OldFileCount = -1000;
+            this._CurrentFileHash = 0;
+            this._CurrentFileString = null;
 
             Console.WriteLine("[th{0}] -- starting...", this._ThreadIndex + 1);
 
@@ -78,8 +108,11 @@ namespace GenerateNameList
             this._SelfThread.Join();
         }
 
-        public void MergeResults(Stream stringOutputStream, SortedSet<string> foundStrings, Stream hashOutputStream, SortedSet<uint> foundHashes,
-                                 Stream stringLookupOutputStream)
+        public void MergeResults(Stream stringOutputStream, SortedSet<string> foundStrings,
+                                 Stream hashOutputStream, SortedSet<uint> foundHashes,
+                                 Stream stringLookupOutputStream,
+                                 Stream objectIdHashOutputStream, SortedSet<uint> foundObjectIdHashes,
+                                 Stream eventHashOutputStream, SortedSet<uint> foundEventHashes)
         {
             // string
             foreach (var str in this._StringList)
@@ -112,12 +145,33 @@ namespace GenerateNameList
                     hashOutputStream.WriteValueU32(hash);
                 }
             }
+            // object id hash
+            foreach (var hash in this._ObjectIdHashList)
+            {
+                if (hash != 0 && !foundObjectIdHashes.Contains(hash))
+                {
+                    foundObjectIdHashes.Add(hash);
+                    objectIdHashOutputStream.WriteValueU32(hash);
+                }
+            }
+            // event hash
+            foreach (var hash in this._VecEventHashList)
+            {
+                if (hash != 0 && !foundEventHashes.Contains(hash))
+                {
+                    foundEventHashes.Add(hash);
+                    eventHashOutputStream.WriteValueU32(hash);
+                }
+            }
         }
 
         // the thread entry point
         private void _DoSearch()
         {
             this._ArchiveIndex = 0;
+
+            this._CurrentFile.Add(null); // the arc file
+            this._CurrentFile.Add(null); // the file inside the arc file
 
             // walk the TAB files
             foreach (var tabFile in this._FileList)
@@ -129,6 +183,7 @@ namespace GenerateNameList
                 }
 
                 var arcFile = Path.ChangeExtension(tabFile, ".arc");
+                this._CurrentFile[0] = Path.GetFileName(Path.GetDirectoryName(arcFile)) + '/' + Path.GetFileName(arcFile);
                 using (var input = File.OpenRead(arcFile))
                 {
                     this._ArchiveEntryIndex = 0;
@@ -144,6 +199,14 @@ namespace GenerateNameList
                         string subtype = this.GetType(input);
                         if (string.IsNullOrEmpty(subtype))
                             continue;
+
+                        // set the current file
+                        if (this._ProjectFileList.Contains(entry.NameHash))
+                            this._CurrentFile[1] = this._ProjectFileList[entry.NameHash];
+                        else
+                            this._CurrentFile[1] = entry.NameHash.ToString("X8") + '.' + subtype;
+                        this.UpdateCurrentFile();
+                        // process that file
                         using (var entryStream = entry.ReadToMemoryStream(input))
                         {
                             this.HandleStream(entryStream, subtype);
@@ -157,7 +220,7 @@ namespace GenerateNameList
 
         private void HandleStream(Stream file, string type)
         {
-            file.Position = 0;
+            //file.Position = 0;
             if (type == "ADF")
             {
                 // Got some AAF file
@@ -208,6 +271,8 @@ namespace GenerateNameList
                     var smallArchive = new SmallArchiveFile();
                     smallArchive.Deserialize(input);
 
+                    this._CurrentFile.Add(null);
+
                     foreach (var entry in smallArchive.Entries)
                     {
                         this.AddString(entry.Name);
@@ -221,11 +286,22 @@ namespace GenerateNameList
                         string subtype = this.GetType(input);
                         if (string.IsNullOrEmpty(subtype))
                             continue;
+                        // insert the name
+                        this._CurrentFile[this._CurrentFile.Count - 1] = entry.Name;
+                        this.UpdateCurrentFile();
+                        // process the file
                         using (var entryStream = entry.ReadToMemoryStream(input))
                         {
+                            // I know that this copies a copy of a memory (that's a stupid thing)
+                            // but without this the memories goes crazy and if I force GC Collect
+                            // that's even worse. So a little copy doesn't look bad in front of
+                            // the horrors produced when you don't have it.
+                            // to see what it's like, replace entryStream with input.
                             this.HandleStream(entryStream, subtype);
                         }
                     }
+
+                    this._CurrentFile.RemoveAt(this._CurrentFile.Count - 1);
 
                     ++this.AAFExtractCount;
                 }
@@ -296,12 +372,47 @@ namespace GenerateNameList
                 this._StringList.Add(s);
         }
 
-        private void AddHash(uint h)
+        private void AddHash(uint h, HashSet<uint> set)
         {
-            if (!this._HashList.Contains(h))
-                this._HashList.Add(h);
+            if (h != 0 && !set.Contains(h))
+                set.Add(h);
+            if (h != 0)
+            {
+                // create the entry for the file and the hash
+                if (this._HashFileHash.ContainsKey(h))
+                {
+                    if (this._HashFileHash[h].Contains(this._CurrentFileHash) == false)
+                        this._HashFileHash[h].Add(this._CurrentFileHash);
+
+                }
+                else
+                {
+                    this._HashFileHash.Add(h, new HashSet<uint>() { this._CurrentFileHash });
+                }
+                // insert the file
+                if (!this._FileSet.Contains(this._CurrentFileString))
+                    this._FileSet.Add(this._CurrentFileString);
+            }
         }
-        
+
+        private void UpdateCurrentFile()
+        {
+            StringBuilder sb = new StringBuilder();
+
+            bool first = true;
+            foreach (string s in this._CurrentFile)
+            {
+                if (s == null)
+                    break;
+                if (!first)
+                    sb.Append(':');
+                sb.Append(s);
+                first = false;
+            }
+            this._CurrentFileString = sb.ToString();
+            this._CurrentFileHash = this._CurrentFileString.HashJenkins();
+        }
+
         private void ADFExtractStrings(AdfFile adf)
         {
             // load strings from the hash string table
@@ -385,24 +496,33 @@ namespace GenerateNameList
             {
                 var node = nodeQueue.Dequeue();
 
-                AddHash(node.NameHash);
+                AddHash(node.NameHash, this._HashList);
 
                 foreach (var subs in node.Children)
                     nodeQueue.Enqueue(subs);
                 foreach (var property in node.Properties)
                 {
-                    // uncomment to also put object ID / vec events keys and values in the hash list
-                    //var hashes = property.Value.GetHashList();
-                    //if (hashes != null)
-                    //{
-                    //    foreach (uint hash in hashes)
-                    //        AddHash(hash);
-                    //}
+                    var hashes = property.Value.GetHashList();
 
-                    if (property.Value.Tag == "string")
-                        AddString(property.Value.Compose(new Gibbed.ProjectData.HashList<uint>()));
+                    switch (property.Value.Tag)
+                    {
+                        case "objectid":
+                            if (hashes != null && hashes.Length > 0)
+                                AddHash(hashes[0], this._ObjectIdHashList);
+                            break;
+                        case "vec_events":
+                            if (hashes != null && hashes.Length > 0)
+                            {
+                                for (int i = 0; i < hashes.Length; i += 2)
+                                    AddHash(hashes[i], this._VecEventHashList);
+                            }
+                            break;
+                        case "string":
+                            AddString(property.Value.Compose(new Gibbed.ProjectData.HashList<uint>()));
+                            break;
+                    }
 
-                    AddHash(property.Key);
+                    AddHash(property.Key, this._HashList);
                 }
             }
         }
