@@ -44,6 +44,9 @@ Official binary release are to be found
 [here](http://justcause3mods.com/mods/modified-gibbeds-tools/) but there's
 nothing to stop you from building these tools from source.
 
+# Wiki
+
+You can found a (in progress) wiki [here](https://github.com/tim42/gibbed-justcause3-tools-fork/wiki)
 
 # Future
 
