@@ -4,7 +4,7 @@
 # Generated files:
 *.hashfiledict
 *.hashlist
-!generated.hashlist
+!identifier.hashlist
 
 00_generated.tmp.compnamelist
 90_generated.stringlookup.compnamelist
