@@ -35,6 +35,8 @@ Changes includes:
     to help the modders
   - A `ConvertStringLookup` executable for an easier edition of `stringlookup`
     files
+  - A `QueryHashList` executable to discover cross references on identifiers,
+    events, object-id and hashes in RTPC files.
   - Some other changes
 
 
