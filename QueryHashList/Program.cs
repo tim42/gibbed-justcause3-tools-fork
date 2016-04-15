@@ -110,37 +110,62 @@ namespace QueryHashList
                 Console.Write("HASH> ");
                 string line = Console.ReadLine();
                 if (string.IsNullOrEmpty(line))
-                    break;
+                    continue;
 
                 uint hash = 0;
                 bool printFileList = false;
-                if (line[0] == ':')
+                bool useJenkinsHash = false;
+                while (true)
                 {
-                    line = line.Substring(1);
-                    printFileList = true;
+                    switch (line[0])
+                    {
+                        case ':':
+                            line = line.Substring(1);
+                            printFileList = true;
+                            continue;
+                        case '#':
+                            line = line.Substring(1);
+                            useJenkinsHash = true;
+                            continue;
+                        default:
+                            break;
+                    }
+                    break;
                 }
+
 
                 // get the hash from the line
                 bool fail = false;
-                if ((line[0] == '-' || line[0] == '+') && line.Length > 1)
+                if (useJenkinsHash == false)
                 {
-                    if (line[0] == '-')
+                    if ((line[0] == '-' || line[0] == '+') && line.Length > 1)
                     {
-                        int ihash = 0;
-                        if (int.TryParse(line, NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out ihash) == false)
+                        if (line[0] == '-')
+                        {
+                            int ihash = 0;
+                            if (int.TryParse(line, NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out ihash) == false)
+                                fail = true;
+                            else
+                                hash = (uint)ihash;
+                        }
+                        else if (uint.TryParse(line, NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out hash) == false)
                             fail = true;
-                        else
-                            hash = (uint)ihash;
                     }
-                    else if (uint.TryParse(line, NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out hash) == false)
-                            fail = true;
+                    else if (uint.TryParse(line, NumberStyles.AllowHexSpecifier, CultureInfo.InvariantCulture, out hash) == false)
+                        fail = true;
                 }
-                else if (uint.TryParse(line, NumberStyles.AllowHexSpecifier, CultureInfo.InvariantCulture, out hash) == false)
-                    fail = true;
+                else
+                {
+                    hash = line.HashJenkins();
+                }
+
                 if (fail == true)
                 {
-                    Console.WriteLine("This is not a valid hash. Please enter a hexadecimal number.");
-                    Console.WriteLine("You can also enter [+-][0-9]+ for a decimal number.");
+                    Console.WriteLine("This is not a valid hash. Please enter a hexadecimal number");
+                    Console.WriteLine("You can also enter [+-][0-9]+ for a decimal number");
+                    Console.WriteLine("You can also prefix any string with # to use the hash of the string");
+                    Console.WriteLine("If you prefix the hash or the string with : it will print the name of all the RTPC file it appears in");
+                    Console.WriteLine("");
                     continue;
                 }
 
@@ -177,6 +202,7 @@ namespace QueryHashList
                     Console.WriteLine("  found file that matches: {0}", _Files[hash]);
                 else
                     Console.WriteLine("  found file that matches for reverse hash: {0}", _Files[hash]);
+                found = true;
             }
 
             // ask _Name for a name
@@ -186,6 +212,7 @@ namespace QueryHashList
                     Console.WriteLine("  found string: {0}", _Names[hash]);
                 else
                     Console.WriteLine("  found string for reverse hash: {0}", _Names[hash]);
+                found = true;
             }
 
             // lookup the file list for this hash:
