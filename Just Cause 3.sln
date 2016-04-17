@@ -41,7 +41,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Gibbed.JustCause3.ConvertTe
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Gibbed.Squish", "Gibbed.Squish\Gibbed.Squish.csproj", "{242D0738-AA4C-4C9C-A218-891A8F55559C}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GenerateFileName", "GenerateFileName\GenerateFileName.csproj", "{B5899393-73CA-47B2-B77D-826D465A07E9}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GenerateName", "GenerateFileName\GenerateName.csproj", "{B5899393-73CA-47B2-B77D-826D465A07E9}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GenerateNameList", "GenerateNameList\GenerateNameList.csproj", "{48E7E7E7-613A-488F-B829-505C6B520288}"
 EndProject

@@ -321,6 +321,20 @@ namespace GenerateNameList
                         AddString(member.Name);
                         AddString(member.StringData);
 
+                        if (member.Type == AdfFile.TypeDefinitionType.StringHash
+                            || (member.Type == AdfFile.TypeDefinitionType.Primitive && member.TypeHash == AdfTypeHashes.String))
+                            AddHash(member.StringData.HashJenkins(), "adf-string-hash");
+                        else if (member.Type == AdfFile.TypeDefinitionType.Primitive)
+                        {
+                            if (member.TypeHash == AdfTypeHashes.Primitive.Int32 || member.TypeHash == AdfTypeHashes.Primitive.UInt32)
+                            {
+                                member.Data.Position = 0;
+                                uint value = member.Data.ReadValueU32();
+                                member.Data.Position = 0;
+                                AddHash(value, "adf-integer-values");
+                            }
+                        }
+
                         // this is a special case for stringlookup files, where there's a sometime a
                         // HUGE int8 array that contains and UTF-8 encoded string.
                         // so for the sake of finding the more string, we will need to parse
@@ -384,11 +398,22 @@ namespace GenerateNameList
 
                     switch (property.Value.Tag)
                     {
+                        case "vec_int":
+                            if (hashes != null && hashes.Length > 0)
+                            {
+                                for (int i = 0; i < hashes.Length; ++i)
+                                    AddHash(hashes[i], "integer-values");
+                            }
+                            break;
+                        case "int":
+                            if (hashes != null && hashes.Length > 0)
+                                AddHash(hashes[0], "integer-values");
+                            break;
                         case "objectid":
                             if (hashes != null && hashes.Length > 0)
                             {
-                                AddHash(hashes[0], "object-id");
-                                AddHash(hashes[1], "object-id-value");
+                                AddHash(hashes[0], "object-ids");
+                                AddHash(hashes[1], "object-id-values");
                             }
                             break;
                         case "vec_events":

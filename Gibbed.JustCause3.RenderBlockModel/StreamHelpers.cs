@@ -45,6 +45,26 @@ namespace Gibbed.JustCause3.RenderBlockModel
             var count = input.ReadValueS32(endian);
             Debug.Assert(count >= 0);
             array.Clear();
+            Console.WriteLine("cap: {0} vs {1}", array.Capacity, count);
+            array.Capacity = count;
+            for (int i = 0; i < count; i++)
+            {
+                var item = new TType();
+                item.Deserialize(input, endian);
+                array.Add(item);
+            }
+        }
+
+        public static void ReadArray<TType>(this Stream input, int count, List<TType> array, Endian endian)
+            where TType : IFormat, new()
+        {
+            if (array == null)
+            {
+                throw new ArgumentNullException("value");
+            }
+
+            Debug.Assert(count >= 0);
+            array.Clear();
             array.Capacity = count;
             for (int i = 0; i < count; i++)
             {

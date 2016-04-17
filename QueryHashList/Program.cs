@@ -80,9 +80,13 @@ namespace QueryHashList
                     }
                 }
                 if (conflicts != 0)
-                    Console.WriteLine("WARNING: Found {0} conflicts in the cross result file");
-                if (max + 20 > Console.WindowHeight)
-                    Console.BufferHeight = max + 20;
+                    Console.WriteLine("WARNING: Found {0} conflicts in the cross result file", conflicts);
+                try
+                {
+                    if (max + 20 > Console.WindowHeight)
+                        Console.BufferHeight = max + 20;
+                }
+                catch { } // depending the console you use, this may throw
             }
 
             // load the hashlists
@@ -171,7 +175,8 @@ namespace QueryHashList
 
                 // print the results
                 bool res = SearchHash(hash, false, printFileList);
-                res |= SearchHash(hash.Swap(), true, printFileList);
+                if (hash.Swap() != hash)
+                    res |= SearchHash(hash.Swap(), true, printFileList);
 
                 if (!res)
                     Console.WriteLine("  hash not found");

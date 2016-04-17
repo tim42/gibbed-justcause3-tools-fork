@@ -94,23 +94,24 @@ namespace Gibbed.JustCause3.RenderBlockModel
                 uint typeHash = input.ReadValueU32(endian);
                 Console.WriteLine("block type: {0:X8}", typeHash);
 
-                if (typeHash == 0x2CEC5AD5)
-                {
-                    uint tCount = input.ReadValueU32(endian);
-                    Console.WriteLine("tcount: {0}", tCount);
-                    for (int t = 0; t < tCount; ++t)
-                    {
-                        Console.WriteLine("1: {0}", input.ReadValueF32(endian));
-                        Console.WriteLine("2: {0}", input.ReadValueF32(endian));
-                        Console.WriteLine("3: {0}", input.ReadValueU32(endian));
-                        //Console.WriteLine("4: {0}", input.ReadValueU32(endian));
-                        //Console.WriteLine("5: {0}", input.ReadValueU32(endian));
-                        //Console.WriteLine("5: {0}", input.ReadValueU32(endian));
-                        Console.WriteLine(" -- ");
-                    }
-                    continue;
-                }
-                Console.WriteLine("block {0} [offset 0x{1:X8}]", i, input.Position);
+                //if (typeHash == 0x2CEC5AD5)
+                //{
+                //    long initialPosition = input.Position;
+                //    uint unknown = input.ReadValueU8();
+                //    Console.WriteLine("version: {0}", unknown);
+                //    for (int t = 0; t < 9; ++t)
+                //        Console.WriteLine("1: {0:X8} | {1}", input.Position - initialPosition, input.ReadValueF32(endian));
+                //    for (int t = 0; t < 4; ++t)
+                //        Console.WriteLine("1: {0:X8} | {1:X8}", input.Position - initialPosition, input.ReadValueU32(endian));
+                //    for (int t = 0; t < 3; ++t)
+                //        Console.WriteLine("1: {0:X8} | {1}", input.Position - initialPosition, input.ReadValueF32(endian));
+                //    for (int t = 0; t < 9; ++t)
+                //        Console.WriteLine("1: {0:X8} | {1:X8}", input.Position - initialPosition, input.ReadValueU32(endian));
+                //    for (int t = 0; t < 71; ++t)
+                //        Console.WriteLine("1: {0:X8} | {1}", input.Position - initialPosition, input.ReadValueF32(endian));
+                //    continue;
+                //}
+                //Console.WriteLine("block {0} [offset 0x{1:X8}]", i, input.Position);
 
                 var block = BlockTypeFactory.Create(typeHash);
                 if (block == null)
@@ -125,6 +126,7 @@ namespace Gibbed.JustCause3.RenderBlockModel
 
                 block.Deserialize(input, endian);
 
+                Console.WriteLine(" -- offset: {0:X8}", input.Position);
                 if (input.ReadValueU32(endian) != 0x89ABCDEF)
                 {
                     throw new FormatException("invalid block footer (data corrupt? or misread?)");

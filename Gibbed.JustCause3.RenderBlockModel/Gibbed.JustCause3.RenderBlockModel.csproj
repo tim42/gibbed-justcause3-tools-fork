@@ -62,7 +62,11 @@
     <Compile Include="Blocks\DeformableWindowData0.cs" />
     <Compile Include="Blocks\General.cs" />
     <Compile Include="Blocks\GeneralData0Big.cs" />
+    <Compile Include="Blocks\ShortVec4Buffer.cs" />
+    <Compile Include="Blocks\Vec4Buffer.cs" />
+    <Compile Include="Blocks\Vec3Buffer.cs" />
     <Compile Include="Blocks\GeneralData0Small.cs" />
+    <Compile Include="Blocks\JC3Genral.cs" />
     <Compile Include="Blocks\Lambert.cs" />
     <Compile Include="Blocks\LambertData0Big.cs" />
     <Compile Include="Blocks\LambertData0Small.cs" />

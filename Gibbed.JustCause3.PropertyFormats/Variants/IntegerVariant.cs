@@ -53,7 +53,9 @@ namespace Gibbed.JustCause3.PropertyFormats.Variants
 
         public uint[] GetHashList()
         {
-            return null; // nothing to declare (YET)
+            if (this._Value == 0)
+                return null;
+            return new uint[1] { (uint)this._Value };
         }
 
         #region PropertyContainerFile

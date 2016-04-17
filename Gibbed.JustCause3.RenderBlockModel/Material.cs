@@ -10,6 +10,7 @@ namespace Gibbed.JustCause3.RenderBlockModel
 {
     public struct Material : IFormat
     {
+        public uint Unknown0;
         public string UndeformedDiffuseTexture;
         public string UndeformedNormalMap;
         public string UndeformedPropertiesMap;
@@ -35,6 +36,7 @@ namespace Gibbed.JustCause3.RenderBlockModel
 
         public void Deserialize(Stream input, Endian endian)
         {
+            this.Unknown0 = input.ReadValueU32();
             this.UndeformedDiffuseTexture = input.ReadStringU32(endian);
             this.UndeformedNormalMap = input.ReadStringU32(endian);
             this.UndeformedPropertiesMap = input.ReadStringU32(endian);
@@ -43,7 +45,9 @@ namespace Gibbed.JustCause3.RenderBlockModel
             this.DeformedPropertiesMap = input.ReadStringU32(endian);
             this.NormalMapEx3 = input.ReadStringU32(endian);
             this.ShadowMapTexture = input.ReadStringU32(endian);
-            this.Unknown8 = input.ReadValueU32(endian);
+            for (uint i = 8; i < this.Unknown0; ++i)
+                input.ReadStringU32(endian);
+            //this.Unknown8 = input.ReadValueU32(endian);
         }
     }
 }

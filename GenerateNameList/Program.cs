@@ -139,48 +139,59 @@ namespace GenerateNameList
                                 foundHashes[set.Key].UnionWith(set.Value);
                         }
                         searcher.HashList.Clear();
+                    }
 
-                        // merge hashFileDict
-                        using (var flushfile = File.OpenRead(searcher.FlushFile))
+                    Assert(foundHashes.ContainsKey("identifier"), "Can't find an 'identifier' category in the generated hash list");
+
+                    // write the contents of foundHashes in their respective hashlist files
+                    Console.WriteLine("Writing hash files...");
+                    foreach (var hashFile in foundHashes)
+                    {
+                        using (var fileOutput = File.Create(Path.Combine(listsPath, hashFile.Key + ".hashlist")))
                         {
-                            while (flushfile.Position < flushfile.Length)
-                            {
-                                uint count = flushfile.ReadValueU32();
-                                for (uint i = 0; i < count; ++i)
-                                {
-                                    uint hash = flushfile.ReadValueU32();
-                                    uint hashCount = flushfile.ReadValueU32();
-                                    var list = new HashSet<uint>();
+                            foreach (uint h in hashFile.Value)
+                                fileOutput.WriteValueU32(h);
+                        }
+                    }
 
-                                    for (uint j = 0; j < hashCount; ++j)
-                                        list.Add(flushfile.ReadValueU32());
-                                    if (!hashFileHashDict.ContainsKey(hash))
-                                        hashFileHashDict.Add(hash, list);
-                                    else
-                                        hashFileHashDict[hash].UnionWith(list);
-                                }
+                    Console.WriteLine("Found {0} unique identifier hash and {1} unique strings", foundHashes["identifier"].Count, foundStrings.Count);
+
+                    foundHashes.Clear();
+                    foundStrings.Clear();
+                }
+
+                GC.Collect();
+
+                // merge hashFileDict
+                foreach (var searcher in searchThreads)
+                {
+                    using (var flushfile = File.OpenRead(searcher.FlushFile))
+                    {
+                        while (flushfile.Position < flushfile.Length)
+                        {
+                            uint count = flushfile.ReadValueU32();
+                            for (uint i = 0; i < count; ++i)
+                            {
+                                uint hash = flushfile.ReadValueU32();
+                                uint hashCount = flushfile.ReadValueU32();
+                                var list = new HashSet<uint>();
+                                
+                                for (uint j = 0; j < hashCount; ++j)
+                                    list.Add(flushfile.ReadValueU32());
+                                if (!hashFileHashDict.ContainsKey(hash))
+                                    hashFileHashDict.Add(hash, list);
+                                else
+                                    hashFileHashDict[hash].UnionWith(list);
                             }
                         }
-                        // free disk space
-                        File.Delete(searcher.FlushFile);
-
-                        fileSet.UnionWith(searcher.FileSet);
-                        searcher.FileSet.Clear();
                     }
+                    // free disk space
+                    File.Delete(searcher.FlushFile);
+
+                    fileSet.UnionWith(searcher.FileSet);
+                    searcher.FileSet.Clear();
                 }
 
-                Assert(foundHashes.ContainsKey("identifier"), "Can't find an 'identifier' category in the generated hash list");
-                
-                // write the contents of foundHashes in their respective hashlist files
-                Console.WriteLine("Writing hash files...");
-                foreach (var hashFile in foundHashes)
-                {
-                    using (var fileOutput = File.Create(Path.Combine(listsPath, hashFile.Key + ".hashlist")))
-                    {
-                        foreach (uint h in hashFile.Value)
-                            fileOutput.WriteValueU32(h);
-                    }
-                }
 
                 // write the contents of hashFileDict to some file
                 Console.WriteLine("Writing cross result file...");
@@ -201,7 +212,10 @@ namespace GenerateNameList
                         hashFileOutput.WriteStringU32(s, Endian.Little);
                 }
 
-                Console.WriteLine("Found {0} unique identifier hash and {1} unique strings", foundHashes["identifier"].Count, foundStrings.Count);
+                hashFileHashDict.Clear();
+                fileSet.Clear();
+
+                GC.Collect();
             }
             else
             {
