@@ -42,7 +42,7 @@ namespace GenerateNameList
             Assert(listsPath != null, "Could not detect lists path.");
 
             string outputPath = Path.Combine(listsPath, "00_generated.namelist");
-            string identifierHashPath = Path.Combine(listsPath, "identifier.hashlist");
+            string identifierHashPath = Path.Combine(listsPath, "identifiers.hashlist");
 
             bool overwrite = false;
             bool alreadyExists = File.Exists(outputPath) && File.Exists(identifierHashPath);
@@ -75,8 +75,7 @@ namespace GenerateNameList
                 Console.WriteLine("Found {0} game archives", inputPaths.Count);
 
                 uint processorCount = (uint)Environment.ProcessorCount;
-                if (processorCount > 6)
-                    processorCount = 6;
+
                 Console.WriteLine("Using {0} search threads", processorCount);
 
                 string outputLookupPath = Path.Combine(listsPath, "90_generated.stringlookup.compnamelist");
@@ -91,10 +90,9 @@ namespace GenerateNameList
                 var searchThreads = new List<ThreadSearcher>();
                 int consoleEndLine = Console.CursorTop + (int)processorCount;
                 for (uint i = 0; i < processorCount; ++i)
-                {
                     searchThreads.Add(new ThreadSearcher(i, processorCount, fileHashList));
-                    searchThreads[(int)i].Search(inputPaths);
-                }
+                foreach (var searcher in searchThreads)
+                    searcher.Search(inputPaths);
                 // wait for completion
                 foreach (var searcher in searchThreads)
                     searcher.Wait();
@@ -141,7 +139,7 @@ namespace GenerateNameList
                         searcher.HashList.Clear();
                     }
 
-                    Assert(foundHashes.ContainsKey("identifier"), "Can't find an 'identifier' category in the generated hash list");
+                    Assert(foundHashes.ContainsKey("identifiers"), "Can't find an 'identifiers' category in the generated hash list");
 
                     // write the contents of foundHashes in their respective hashlist files
                     Console.WriteLine("Writing hash files...");
@@ -154,7 +152,7 @@ namespace GenerateNameList
                         }
                     }
 
-                    Console.WriteLine("Found {0} unique identifier hash and {1} unique strings", foundHashes["identifier"].Count, foundStrings.Count);
+                    Console.WriteLine("Found {0} unique identifier hash and {1} unique strings", foundHashes["identifiers"].Count, foundStrings.Count);
 
                     foundHashes.Clear();
                     foundStrings.Clear();
@@ -163,6 +161,7 @@ namespace GenerateNameList
                 GC.Collect();
 
                 // merge hashFileDict
+                Console.WriteLine("Merging cross result files...");
                 foreach (var searcher in searchThreads)
                 {
                     using (var flushfile = File.OpenRead(searcher.FlushFile))
@@ -185,11 +184,13 @@ namespace GenerateNameList
                             }
                         }
                     }
-                    // free disk space
-                    File.Delete(searcher.FlushFile);
-
                     fileSet.UnionWith(searcher.FileSet);
                     searcher.FileSet.Clear();
+
+                    // free memory
+                    GC.Collect();
+                    // free disk space
+                    File.Delete(searcher.FlushFile);
                 }
 
 

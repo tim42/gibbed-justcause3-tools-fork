@@ -318,12 +318,21 @@ namespace GenerateNameList
                     {
                         var member = imiQueue.Dequeue();
 
-                        AddString(member.Name);
-                        AddString(member.StringData);
+                        if (!string.IsNullOrEmpty(member.Name))
+                        {
+                            AddString(member.Name);
+                            AddHash(member.Name.HashJenkins(), "adf-property-names");
+                        }
+
+                        if (!string.IsNullOrEmpty(member.StringData))
+                        {
+                            AddString(member.StringData);
+                            AddHash(member.StringData.HashJenkins(), "adf-strings");
+                        }
 
                         if (member.Type == AdfFile.TypeDefinitionType.StringHash
                             || (member.Type == AdfFile.TypeDefinitionType.Primitive && member.TypeHash == AdfTypeHashes.String))
-                            AddHash(member.StringData.HashJenkins(), "adf-string-hash");
+                            AddHash(member.StringData.HashJenkins(), "adf-string-hashes");
                         else if (member.Type == AdfFile.TypeDefinitionType.Primitive)
                         {
                             if (member.TypeHash == AdfTypeHashes.Primitive.Int32 || member.TypeHash == AdfTypeHashes.Primitive.UInt32)
@@ -362,6 +371,7 @@ namespace GenerateNameList
                                         var str = Encoding.UTF8.GetString(accum.ToArray());
                                         if (!this._StringLookupList.Contains(str))
                                             this._StringLookupList.Add(str);
+                                        AddHash(str.HashJenkins(), "adf-stringlookup-text");
                                         accum.Clear();
                                     }
                                 }
@@ -388,7 +398,7 @@ namespace GenerateNameList
             {
                 var node = nodeQueue.Dequeue();
 
-                AddHash(node.NameHash, "identifier");
+                AddHash(node.NameHash, "identifiers");
 
                 foreach (var subs in node.Children)
                     nodeQueue.Enqueue(subs);
@@ -427,11 +437,16 @@ namespace GenerateNameList
                             }
                             break;
                         case "string":
-                            AddString(property.Value.Compose(new Gibbed.ProjectData.HashList<uint>()));
+                            var str = property.Value.Compose(new Gibbed.ProjectData.HashList<uint>());
+                            if (!string.IsNullOrEmpty(str))
+                            {
+                                AddString(str);
+                                AddHash(str.HashJenkins(), "rtpc-strings");
+                            }
                             break;
                     }
 
-                    AddHash(property.Key, "identifier");
+                    AddHash(property.Key, "identifiers");
                 }
             }
         }
