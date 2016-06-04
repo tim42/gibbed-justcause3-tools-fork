@@ -49,7 +49,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HashName", "HashName\HashNa
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Gibbed.JustCause3.Pack", "Pack\Gibbed.JustCause3.Pack.csproj", "{23CD8B5E-F9B7-44FB-B4B8-B3F4B0EA43FB}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SkyFortressPacker", "SkyFortressPacker\SkyFortressPacker.csproj", "{EF51ACFE-521E-49C4-BD2A-B0C781F584C3}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DLCPacker", "SkyFortressPacker\DLCPacker.csproj", "{EF51ACFE-521E-49C4-BD2A-B0C781F584C3}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Batch", "Batch\Batch.csproj", "{8DE531E7-46C9-4C03-A5CB-D825C5224F95}"
 EndProject

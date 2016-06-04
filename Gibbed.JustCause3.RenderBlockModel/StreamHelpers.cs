@@ -45,7 +45,6 @@ namespace Gibbed.JustCause3.RenderBlockModel
             var count = input.ReadValueS32(endian);
             Debug.Assert(count >= 0);
             array.Clear();
-            Console.WriteLine("cap: {0} vs {1}", array.Capacity, count);
             array.Capacity = count;
             for (int i = 0; i < count; i++)
             {
