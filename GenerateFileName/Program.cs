@@ -14,10 +14,10 @@ namespace GenerateFileName
         static private char[] AllowedChars =
             {
                 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'y', 'v', 'w', 'x', 'y', 'z',
-                '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '_', '-', '[', ']', '+', '=', '{', '}',
+                '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '_', '-',
                 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'Y', 'V', 'W', 'X', 'Y', 'Z'
             };
-        private const uint StringLen = 12;
+        private const uint MaxStringLen = 24;
         private uint Hash;
         private string BaseString;
         private string Extension;
@@ -38,17 +38,22 @@ namespace GenerateFileName
             int maxLen = AllowedChars.Length;
             ulong iterCount = 0;
 
-            byte[] name = new byte[StringLen];
+            byte[] name;
+            byte[] data = new byte[1];
             var rng = RandomNumberGenerator.Create();
-            while (this.GenerateString(name).HashJenkins() != this.Hash)
+
+            do
             {
                 ++iterCount;
 
+                rng.GetBytes(data);
+                name = new byte[((uint)data[0] % MaxStringLen) + 1];
                 rng.GetBytes(name);
 
                 if ((iterCount % 4000000) == 0)
                     Console.WriteLine("{0} iterations... [size: {1}] -- {2}", iterCount, name.Length, this.GenerateString(name));
             }
+            while (this.GenerateString(name).HashJenkins() != this.Hash);
 
             this.Found = true;
             this.GeneratedString = this.GenerateString(name);
@@ -57,11 +62,11 @@ namespace GenerateFileName
 
         private string GenerateString(byte[] name)
         {
-            string ret = this.BaseString.Length != 0 ? this.BaseString + '\\' : "";
+            string ret = this.BaseString.Length != 0 ? this.BaseString : "";
             foreach (uint index in name)
                 ret += AllowedChars[(index % AllowedChars.Length)];
             if (Extension.Length > 0)
-                ret += '.' + Extension;
+                ret += Extension;
             return ret;
         }
     }
@@ -70,13 +75,13 @@ namespace GenerateFileName
     {
         static void Main(string[] args)
         {
-            Console.WriteLine("This utility bruteforce hashes in order to find some file path matching this hash.");
+            Console.WriteLine("This utility bruteforce hashes in order to find some string matching that hash");
             Console.Write("Enter the hash: ");
             string hash = Console.ReadLine();
             uint uintHash = uint.Parse(hash, NumberStyles.AllowHexSpecifier);
-            Console.Write("Enter the base path for the file (without trailing backslash): ");
+            Console.Write("Enter a prefix: ");
             string basePath = Console.ReadLine();
-            Console.Write("Enter the extension of the file (without the dot): ");
+            Console.Write("Enter a suffix: ");
             string extension = Console.ReadLine();
 
             List<BruteForcer> brfList = new List<BruteForcer>();

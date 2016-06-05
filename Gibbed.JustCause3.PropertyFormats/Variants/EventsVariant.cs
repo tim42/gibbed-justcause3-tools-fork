@@ -65,7 +65,7 @@ namespace Gibbed.JustCause3.PropertyFormats.Variants
                     if (parts[0][0] == '$')
                         left = parts[0].Substring(1).HashJenkins();
                     else
-                        left = uint.Parse(parts[0], NumberStyles.AllowHexSpecifier, CultureInfo.InvariantCulture);
+                        left = uint.Parse(parts[0], NumberStyles.AllowHexSpecifier | NumberStyles.AllowLeadingWhite, CultureInfo.InvariantCulture);
 
                     // the value
                     if (parts.Length == 1)
@@ -73,7 +73,7 @@ namespace Gibbed.JustCause3.PropertyFormats.Variants
                     else if (parts[1][0] == '$')
                         right = parts[1].Substring(1).HashJenkins();
                     else
-                        right = uint.Parse(parts[1], NumberStyles.AllowHexSpecifier, CultureInfo.InvariantCulture);
+                        right = uint.Parse(parts[1], NumberStyles.AllowHexSpecifier | NumberStyles.AllowLeadingWhite, CultureInfo.InvariantCulture);
                     this._Values.Add(new KeyValuePair<uint, uint>(left, right));
                 }
             }

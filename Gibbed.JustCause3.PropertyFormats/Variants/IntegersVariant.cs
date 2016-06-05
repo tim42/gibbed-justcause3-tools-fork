@@ -62,7 +62,12 @@ namespace Gibbed.JustCause3.PropertyFormats.Variants
 
         public uint[] GetHashList()
         {
-            return null; // nothing to declare, YET (that may change !)
+            if (this._Values.Count == 0)
+                return null;
+            uint[] ret = new uint[this._Values.Count];
+            for (int i = 0; i < this._Values.Count; ++i)
+                ret[i] = (uint)this._Values[i];
+            return ret;
         }
 
 

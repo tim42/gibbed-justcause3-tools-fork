@@ -29,6 +29,22 @@
     <ErrorReport>prompt</ErrorReport>
     <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'">
+    <DebugSymbols>true</DebugSymbols>
+    <OutputPath>bin\x64\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <DebugType>full</DebugType>
+    <PlatformTarget>x64</PlatformTarget>
+    <ErrorReport>prompt</ErrorReport>
+    <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x64'">
+    <OutputPath>..\bin\</OutputPath>
+    <Optimize>true</Optimize>
+    <PlatformTarget>x64</PlatformTarget>
+    <ErrorReport>prompt</ErrorReport>
+    <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
+  </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
     <Reference Include="System.Core" />
@@ -46,7 +62,11 @@
     <Compile Include="Blocks\DeformableWindowData0.cs" />
     <Compile Include="Blocks\General.cs" />
     <Compile Include="Blocks\GeneralData0Big.cs" />
+    <Compile Include="Blocks\ShortVec4Buffer.cs" />
+    <Compile Include="Blocks\Vec4Buffer.cs" />
+    <Compile Include="Blocks\Vec3Buffer.cs" />
     <Compile Include="Blocks\GeneralData0Small.cs" />
+    <Compile Include="Blocks\JC3Genral.cs" />
     <Compile Include="Blocks\Lambert.cs" />
     <Compile Include="Blocks\LambertData0Big.cs" />
     <Compile Include="Blocks\LambertData0Small.cs" />

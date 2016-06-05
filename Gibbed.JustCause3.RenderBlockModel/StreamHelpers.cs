@@ -54,6 +54,25 @@ namespace Gibbed.JustCause3.RenderBlockModel
             }
         }
 
+        public static void ReadArray<TType>(this Stream input, int count, List<TType> array, Endian endian)
+            where TType : IFormat, new()
+        {
+            if (array == null)
+            {
+                throw new ArgumentNullException("value");
+            }
+
+            Debug.Assert(count >= 0);
+            array.Clear();
+            array.Capacity = count;
+            for (int i = 0; i < count; i++)
+            {
+                var item = new TType();
+                item.Deserialize(input, endian);
+                array.Add(item);
+            }
+        }
+
         public static void WriteArray<TType>(this Stream output, List<TType> array, Endian endian)
             where TType: IFormat
         {

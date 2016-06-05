@@ -39,6 +39,12 @@ namespace Gibbed.JustCause3.RenderBlockModel
             _HashesToTypes.Add(hash, typeof(TBlockType));
         }
 
+        private static void Register<TBlockType>(uint hash)
+            where TBlockType : IRenderBlock
+        {
+            _HashesToTypes.Add(hash, typeof(TBlockType));
+        }
+
         public static IRenderBlock Create(string type)
         {
             return Create(type.HashJenkins());
@@ -71,6 +77,8 @@ namespace Gibbed.JustCause3.RenderBlockModel
                 .ToDictionary(i => i.Key,
                               i => i.Value);
             _HashesToTypes = new Dictionary<uint, Type>();
+
+            Register<Blocks.JC3Genral>(0x2CEC5AD5);
 
             Register<Blocks.CarPaint>("CarPaint");
             Register<Blocks.CarPaintSimple>("CarPaintSimple");
