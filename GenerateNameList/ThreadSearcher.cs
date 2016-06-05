@@ -260,6 +260,8 @@ namespace GenerateNameList
         {
             if (!this._StringList.Contains(s))
                 this._StringList.Add(s);
+
+            LinkHashToFile(s.HashJenkins());
         }
 
         private void AddHash(uint h, string name)
@@ -269,6 +271,11 @@ namespace GenerateNameList
             else if (h != 0 && !this._HashList[name].Contains(h))
                 this._HashList[name].Add(h);
 
+            LinkHashToFile(h);
+        }
+
+        private void LinkHashToFile(uint h)
+        {
             if (h != 0)
             {
                 // create the entry for the file and the hash

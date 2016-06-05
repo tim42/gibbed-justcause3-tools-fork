@@ -26,7 +26,12 @@ namespace GenerateNameList
 
         static void Main(string[] args)
         {
-            Console.BufferWidth = 150;
+            try
+            {
+                Console.BufferWidth = 150;
+            }
+            catch (Exception) { }
+
             Console.Clear();
 
             var manager = Manager.Load(); // load the current project
